@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Propostas INSS</title>
+    <!-- Adiciona Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
+    <!-- Corrigido: Removido escapes desnecessários -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="logo-container">
+    <!-- Corrigido: Removido escapes desnecessários -->
+    <img src="{{ url_for('serve_logo') }}" alt="Souzacred Soluções Financeiras">
+</div>
+
+<h1>GERENCIADOR DE PROPOSTAS INSS</h1>
+
+<!-- Mensagens Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="flash-messages">
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- Formulário de Nova Proposta -->
+<div class="container form-section">
+    <h2>ADICIONAR NOVA PROPOSTA</h2>
+    <form action="/add" method="post">
+        <div class="form-grid">
+            <div class="form-column">
+                <label for="data_envio_cip">DATA ENVIO CIP:</label>
+                <input type="date" id="data_envio_cip" name="DATA_ENVIO_CIP" required>
+
+                <label for="cpf">CPF:</label>
+                <input type="text" id="cpf" name="CPF" placeholder="000.000.000-00"
+                       maxlength="14" oninput="formatarCPF(this)" required>
+
+                <label for="nome_cliente">NOME CLIENTE:</label>
+                <input type="text" id="nome_cliente" name="NOME_CLIENTE" required style="text-transform: uppercase;">
+
+                <label for="banco_proponente">BANCO PROPONENTE:</label>
+                <select id="banco_proponente" name="BANCO_PROPONENTE">
+                    <option value="">Selecione...</option>
+                    {% for banco in bancos_options %}
+                    <option value="{{ banco }}">{{ banco }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="promotora">PROMOTORA:</label>
+                <select id="promotora" name="PROMOTORA">
+                    <option value="">Selecione...</option>
+                     {% for promotora in promotoras_options %}
+                    <option value="{{ promotora }}">{{ promotora }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-column">
+                <label for="orgao">ÓRGÃO:</label>
+                <select id="orgao" name="ORGAO">
+                    <option value="">Selecione...</option>
+                    <option value="INSS" selected>INSS</option>
+                    <option value="AERONÁUTICA">AERONÁUTICA</option>
+                    <option value="ESTADO">ESTADO</option>
+                    <option value="MARINHA">MARINHA</option>
+                    <option value="MUNICÍPIO">MUNICÍPIO</option>
+                    <option value="SIAPE">SIAPE</option>
+                    <option value="EXÉRCITO">EXÉRCITO</option>
+                </select>
+
+                <label for="valor_parcela">VALOR PARCELA (R$):</label>
+                <input type="text" id="valor_parcela" name="VALOR_PARCELA" oninput="formatarMoeda(this)">
+
+                <label for="banco_origem_divida">BANCO ORIGEM DÍVIDA:</label>
+                <select id="banco_origem_divida" name="BANCO_ORIGEM_DIVIDA">
+                    <option value="">Selecione...</option>
+                    {% for banco_origem in bancos_origem_options %}
+                    <option value="{{ banco_origem }}">{{ banco_origem }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="saldo_devedor_previsto">SALDO DEVEDOR PREVISTO (R$):</label>
+                <input type="text" id="saldo_devedor_previsto" name="SALDO_DEVEDOR_PREVISTO" oninput="formatarMoeda(this)">
+
+                <label for="valor_liquido_previsto">VALOR LÍQUIDO PREVISTO (R$):</label>
+                <input type="text" id="valor_liquido_previsto" name="VALOR_LIQUIDO_PREVISTO" oninput="formatarMoeda(this)">
+            </div>
+        </div>
+
+        <label for="numero_proposta">Nº PROPOSTA:</label>
+        <input type="text" id="numero_proposta" name="NUMERO_PROPOSTA" required style="text-transform: uppercase;">
+
+        <label for="link_formalizacao">LINK FORMALIZAÇÃO:</label>
+        <input type="text" id="link_formalizacao" name="LINK_FORMALIZACAO">
+
+        <button type="submit" class="button-primary"><i class="fas fa-plus"></i> ADICIONAR PROPOSTA</button>
+    </form>
+</div>
+
+<!-- Formulário de Filtros (Movido para cá) -->
+<div class="container filter-section">
+    <h2>FILTRAR PROPOSTAS</h2>
+    <form action="/" method="get">
+        <div class="filter-grid">
+            <div>
+                <label for="filter_nome_cliente">Nome Cliente:</label>
+                <input type="text" id="filter_nome_cliente" name="nome_cliente" value="{{ filter_nome }}" style="text-transform: uppercase;">
+            </div>
+            <div>
+                <label for="filter_cpf">CPF:</label>
+                <input type="text" id="filter_cpf" name="cpf" value="{{ filter_cpf }}" maxlength="14" oninput="formatarCPF(this)">
+            </div>
+            <div>
+                <label for="filter_banco_proponente">Banco Proponente:</label>
+                <select id="filter_banco_proponente" name="banco_proponente">
+                    <option value="">Todos</option>
+                    {% for banco in bancos_options %}
+                    <option value="{{ banco }}" {% if banco == filter_banco %}selected{% endif %}>{{ banco }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div>
+                <label for="filter_promotora">Promotora:</label>
+                <select id="filter_promotora" name="promotora">
+                    <option value="">Todas</option>
+                    {% for promotora in promotoras_options %}
+                    <option value="{{ promotora }}" {% if promotora == filter_promotora %}selected{% endif %}>{{ promotora }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="filter-buttons">
+            <button type="submit" class="button-primary"><i class="fas fa-filter"></i> Filtrar</button>
+            <a href="/" class="button-secondary"><i class="fas fa-times"></i> Limpar Filtros</a>
+        </div>
+    </form>
+</div>
+
+<!-- Tabela Aguardando Saldo -->
+<div class="container">
+    <h2>AGUARDANDO SALDO</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data Envio</th>
+                    <th>Data Retorno Prev.</th>
+                    <th>Nº Proposta</th>
+                    <th>CPF</th>
+                    <th>Nome Cliente</th>
+                    <th>Promotora</th>
+                    <th>Banco</th>
+                    <th>Valor Parcela</th>
+                    <th>Saldo Prev.</th>
+                    <th>Líquido Prev.</th>
+                    <th>Status</th>
+                    <th>Saldo Ret.</th> <!-- Nova Coluna -->
+                    <th>Líquido Atu.</th> <!-- Nova Coluna -->
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if aguardando %}
+                    {% for row in aguardando %}
+                    <tr class="{% if row.destaque %}highlight{% endif %}">
+                        <!-- Corrigido: Removido escapes desnecessários -->
+                        <td>{{ row.DATA_ENVIO_CIP | default('', true) }}</td>
+                        <td>{{ row.DATA_RETORNO_PREVISTA | default('', true) }}</td>
+                        <td>{{ row.NUMERO_PROPOSTA | default('', true) }}</td>
+                        <td>{{ row.CPF | default('', true) }}</td>
+                        <td>{{ row.NOME_CLIENTE | default('', true) }}</td>
+                        <td>{{ row.PROMOTORA | default('', true) }}</td>
+                        <td>{{ row.BANCO_PROPONENTE | default('', true) }}</td>
+                        <td>{{ row.VALOR_PARCELA | default('', true) }}</td>
+                        <td>{{ row.SALDO_DEVEDOR_PREVISTO | default('', true) }}</td>
+                        <td>{{ row.VALOR_LIQUIDO_PREVISTO | default('', true) }}</td>
+                        <td>{{ row.STATUS_PROPOSTA | default('', true) }}</td>
+                        <!-- Colunas para Saldo Retornado e Líquido Atualizado -->
+                        <td>
+                            <form class="inline-update-form" action="/update/{{ row.NUMERO_PROPOSTA }}" method="post">
+                                <input type="hidden" name="STATUS_PROPOSTA" value="{{ row.STATUS_PROPOSTA }}">
+                                <input type="text" name="SALDO_RETORNADO_CIP" placeholder="R$" value="{{ row.SALDO_RETORNADO_CIP }}" oninput="formatarMoeda(this)" title="Saldo Retornado CIP">
+                            </form>
+                        </td>
+                        <td>
+                             <form class="inline-update-form" action="/update/{{ row.NUMERO_PROPOSTA }}" method="post">
+                                <input type="hidden" name="STATUS_PROPOSTA" value="{{ row.STATUS_PROPOSTA }}">
+                                <input type="text" name="VALOR_LIQUIDO_ATUALIZADO" placeholder="R$" value="{{ row.VALOR_LIQUIDO_ATUALIZADO }}" oninput="formatarMoeda(this)" title="Valor Líquido Atualizado">
+                            </form>
+                        </td>
+                        <td>
+                            <div class="actions-container">
+                                <!-- Editar -->
+                                <a href="/edit/{{ row.NUMERO_PROPOSTA }}" class="icon-button edit-icon" title="Editar Proposta">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <!-- Excluir -->
+                                <!-- Corrigido: Removido escapes desnecessários no onsubmit -->
+                                <form action="/delete/{{ row.NUMERO_PROPOSTA }}" method="post" onsubmit="return confirm('Tem certeza que deseja excluir esta proposta?');" style="display: inline;">
+                                    <button type="submit" class="icon-button delete-icon" title="Excluir Proposta">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                                <!-- Atualizar Status -->
+                                <form class="status-form" action="/update/{{ row.NUMERO_PROPOSTA }}" method="post">
+                                    <select name="STATUS_PROPOSTA" title="Selecionar novo status">
+                                        <option value="">Novo Status...</option>
+                                        {% for status in status_options %}
+                                        <option value="{{ status }}">{{ status }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="icon-button update-icon" title="Atualizar Status (e Saldo/Líquido informados)">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="14" style="text-align:center;">Nenhuma proposta aguardando saldo encontrada.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Tabela Saldos Retornados -->
+<div class="container">
+    <h2>SALDOS RETORNADOS (OK)</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Data Envio</th>
+                    <th>Data Retorno</th>
+                    <th>Nº Proposta</th>
+                    <th>CPF</th>
+                    <th>Nome Cliente</th>
+                    <th>Promotora</th>
+                    <th>Banco</th>
+                    <th>Valor Parcela</th>
+                    <th>Saldo Ret.</th>
+                    <th>Líquido Atu.</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if retornados %}
+                    {% for row in retornados %}
+                     <tr class="{% if row.destaque %}highlight{% endif %}">
+                        <!-- Corrigido: Removido escapes desnecessários -->
+                        <td>{{ row.DATA_ENVIO_CIP | default('', true) }}</td>
+                        <td>{{ row.DATA_RETORNO_CIP | default('', true) }}</td>
+                        <td>{{ row.NUMERO_PROPOSTA | default('', true) }}</td>
+                        <td>{{ row.CPF | default('', true) }}</td>
+                        <td>{{ row.NOME_CLIENTE | default('', true) }}</td>
+                        <td>{{ row.PROMOTORA | default('', true) }}</td>
+                        <td>{{ row.BANCO_PROPONENTE | default('', true) }}</td>
+                        <td>{{ row.VALOR_PARCELA | default('', true) }}</td>
+                        <td>{{ row.SALDO_RETORNADO_CIP | default('', true) }}</td>
+                        <td>{{ row.VALOR_LIQUIDO_ATUALIZADO | default('', true) }}</td>
+                        <td>{{ row.STATUS_PROPOSTA | default('', true) }}</td>
+                        <td>
+                            <div class="actions-container-simple">
+                                <!-- Editar -->
+                                <a href="/edit/{{ row.NUMERO_PROPOSTA }}" class="icon-button edit-icon" title="Editar Proposta">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <!-- Excluir -->
+                                <!-- Corrigido: Removido escapes desnecessários no onsubmit -->
+                                <form action="/delete/{{ row.NUMERO_PROPOSTA }}" method="post" onsubmit="return confirm('Tem certeza que deseja excluir esta proposta?');" style="display: inline;">
+                                    <button type="submit" class="icon-button delete-icon" title="Excluir Proposta">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                                <!-- Mover para outra tabela (Status) -->
+                                <form class="status-form-simple" action="/update/{{ row.NUMERO_PROPOSTA }}" method="post">
+                                    <select name="STATUS_PROPOSTA" title="Mover para outro status/tabela">
+                                        <option value="">Mover para...</option>
+                                        {% for status in status_options %}
+                                            <!-- Corrigido: Removido escapes desnecessários -->
+                                            {% if status != 'SALDO OK' %}
+                                                <option value="{{ status }}">{{ status }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="icon-button update-icon-simple" title="Mover Proposta">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="12" style="text-align:center;">Nenhum saldo retornado (OK) encontrado.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Tabela Saldos Não Retornados -->
+<div class="container">
+    <h2>SALDOS NÃO RETORNADOS (OUTROS STATUS)</h2>
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                 <tr>
+                    <th>Data Envio</th>
+                    <th>Data Retorno</th>
+                    <th>Nº Proposta</th>
+                    <th>CPF</th>
+                    <th>Nome Cliente</th>
+                    <th>Promotora</th>
+                    <th>Banco</th>
+                    <th>Valor Parcela</th>
+                    <th>Saldo Ret.</th>
+                    <th>Líquido Atu.</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if nao_retornados %}
+                    {% for row in nao_retornados %}
+                     <tr class="{% if row.destaque %}highlight{% endif %}">
+                        <!-- Corrigido: Removido escapes desnecessários -->
+                        <td>{{ row.DATA_ENVIO_CIP | default('', true) }}</td>
+                        <td>{{ row.DATA_RETORNO_CIP | default('', true) }}</td>
+                        <td>{{ row.NUMERO_PROPOSTA | default('', true) }}</td>
+                        <td>{{ row.CPF | default('', true) }}</td>
+                        <td>{{ row.NOME_CLIENTE | default('', true) }}</td>
+                        <td>{{ row.PROMOTORA | default('', true) }}</td>
+                        <td>{{ row.BANCO_PROPONENTE | default('', true) }}</td>
+                        <td>{{ row.VALOR_PARCELA | default('', true) }}</td>
+                        <td>{{ row.SALDO_RETORNADO_CIP | default('', true) }}</td>
+                        <td>{{ row.VALOR_LIQUIDO_ATUALIZADO | default('', true) }}</td>
+                        <td>{{ row.STATUS_PROPOSTA | default('', true) }}</td>
+                        <td>
+                             <div class="actions-container-simple">
+                                <!-- Editar -->
+                                <a href="/edit/{{ row.NUMERO_PROPOSTA }}" class="icon-button edit-icon" title="Editar Proposta">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <!-- Excluir -->
+                                <!-- Corrigido: Removido escapes desnecessários no onsubmit -->
+                                <form action="/delete/{{ row.NUMERO_PROPOSTA }}" method="post" onsubmit="return confirm('Tem certeza que deseja excluir esta proposta?');" style="display: inline;">
+                                    <button type="submit" class="icon-button delete-icon" title="Excluir Proposta">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                                <!-- Mover para outra tabela (Status) -->
+                                <form class="status-form-simple" action="/update/{{ row.NUMERO_PROPOSTA }}" method="post">
+                                    <select name="STATUS_PROPOSTA" title="Mover para outro status/tabela">
+                                        <option value="">Mover para...</option>
+                                        {% for status in status_options %}
+                                            {% if status != row.STATUS_PROPOSTA %}
+                                                <option value="{{ status }}">{{ status }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" class="icon-button update-icon-simple" title="Mover Proposta">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="12" style="text-align:center;">Nenhum saldo não retornado encontrado.</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+// Máscara CPF
+function formatarCPF(input) {
+    // Corrigido: Removido escapes desnecessários
+    let cpf = input.value.replace(/\D/g, '');
+    cpf = cpf.slice(0, 11);
+    if (cpf.length <= 3) {
+        input.value = cpf;
+    } else if (cpf.length <= 6) {
+        input.value = cpf.replace(/(\d{3})(\d)/, '$1.$2');
+    } else if (cpf.length <= 9) {
+        input.value = cpf.replace(/(\d{3})(\d{3})(\d)/, '$1.$2.$3');
+    } else {
+        input.value = cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+}
+
+// Formatar Moeda
+function formatarMoeda(input) {
+    // Corrigido: Removido escapes desnecessários
+    let valor = input.value.replace(/\D/g, '');
+    // Evita erro com valor vazio
+    if (valor === '') {
+        input.value = '';
+        return;
+    }
+    valor = (parseInt(valor) / 100).toFixed(2) + '';
+    valor = valor.replace('.', ',');
+    valor = valor.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+    input.value = valor === 'NaN' || valor === '0,00' ? '' : valor;
+}
+
+// Aplica máscaras ao carregar e digitar
+document.addEventListener('DOMContentLoaded', function() {
+    // Corrigido: Removido escapes desnecessários nos seletores
+    document.querySelectorAll('input[name="CPF"], input[name="cpf"]').forEach(input => {
+        formatarCPF(input);
+        input.addEventListener('input', (e) => formatarCPF(e.target));
+    });
+
+    document.querySelectorAll('input[name*="VALOR"], input[name*="SALDO"]').forEach(input => {
+        if(input.value) formatarMoeda(input);
+        input.addEventListener('input', (e) => formatarMoeda(e.target));
+    });
+
+    // Converte campos de texto para maiúsculas
+    document.querySelectorAll("input[type='text']").forEach(input => {
+        // Corrigido: Removido escapes desnecessários
+        if (input.name !== 'CPF' && input.name !== 'cpf' && !input.name.includes('VALOR') && !input.name.includes('SALDO') && input.name !== 'link_formalizacao') {
+            input.style.textTransform = 'uppercase';
+            if(input.value) {
+                input.value = input.value.toUpperCase();
+            }
+        }
+    });
+
+    // Comentário sobre submissão inline mantido
+    // Exemplo: document.querySelectorAll(".inline-update-form input[type='text']").forEach(input => {
+    //     input.addEventListener('change', (e) => {
+    //         e.target.closest('form').submit();
+    //     });
+    // });
+});
+
+</script>
+
+</body>
+</html>
+
