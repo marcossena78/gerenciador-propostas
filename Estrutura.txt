@@ -1,0 +1,12 @@
+gerenciador_propostas/
+├── app.py                    # Arquivo principal
+├── launcher.py               # Inicializador
+├── Gerenciador de Propostas INSS.spec # Verificar se precisa existir o arquivo
+├── iniciar_app                # Verificar se precisa existir o arquivo                   
+├── gerenciador_propostas.xlsx # Base de dados
+├── requirements.txt          # Dependências (Precisa criar o arquivo)
+├── templates/
+│   ├── index.html           # Página principal
+│   └── edit.html            # Página de edição
+└── static/
+    └── style.css            # Estilos customizados
