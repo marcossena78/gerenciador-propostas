@@ -1,0 +1,6 @@
+
+{
+  "name": "Gerenciador de Propostas Souzacred",
+  "description": "Uma aplicação para gerenciar propostas de empréstimo consignado do INSS, permitindo filtrar, adicionar, e atualizar o status das propostas.",
+  "requestFramePermissions": []
+}

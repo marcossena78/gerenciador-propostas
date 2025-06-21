@@ -1,0 +1,23 @@
+src/
+├── components/       # Todos os componentes React
+│   ├── AddProposalModal.tsx
+│   ├── ExportDropdown.tsx
+│   ├── FilterBar.tsx
+│   ├── Header.tsx
+│   ├── Modal.tsx
+│   ├── ProposalTable.tsx
+│   ├── ProposalTabs.tsx
+│   └── StatusModal.tsx
+├── context/          # Contextos globais (como autenticação)
+│   └── AuthContext.tsx
+├── lib/             # Bibliotecas/configurações externas
+│   └── supabaseClient.ts
+├── types.ts         # Tipos TypeScript
+├── constants.ts     # Constantes do projeto
+├── utils/           # Funções utilitárias
+│   └── formatting.ts
+├── App.tsx          # Componente principal
+├── index.tsx        # Ponto de entrada (que renderiza o App)
+├── index.html       # HTML base
+├── index.css        # Estilos globais
+├── vite.config.ts   # Configuração do Vite
